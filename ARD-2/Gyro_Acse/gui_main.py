@@ -103,8 +103,9 @@ def DrawGL():
 
     glRotatef(round(myimu.Pitch,1), 0, 0, 1)
     glRotatef(round(myimu.Roll,1), -1, 0, 0)
+    glRotatef(round(myimu.Yaw, 1), 0, 1, 0)
 
-    DrawText("Roll: {}°               Pitch: {}°".format(round(myimu.Roll,1),round(myimu.Pitch,1)))
+    DrawText("Roll: {}°    Yaw: {}           Pitch: {}°".format(round(myimu.Roll,1), round(myimu.Yaw, 1), round(myimu.Pitch,1)))
     DrawBoard()
     pygame.display.flip()
 
@@ -122,6 +123,7 @@ def ReadData():
         if not data is None:
             myimu.Roll -= data.get("y") * dt
             myimu.Pitch += data.get("x") * dt
+            myimu.Yaw += data.get('z') * dt
         t = time.time()
 
 def main():
