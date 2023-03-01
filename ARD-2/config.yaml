@@ -1,0 +1,18 @@
+gyro:
+ pin: 0x68
+lidar:
+ down: 0x29
+ up: 0x07
+ left: 0x15
+ right: 16
+ front: 18
+ back: 22
+ front_left: 0x00
+ front_right: 0x00
+ back_left: 0x00
+ back_right: 0x00
+motor:
+  fr: 26 
+  fl: 19
+  br: 13
+  bl: 6
