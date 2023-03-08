@@ -2,6 +2,8 @@ import os     #importing os library so as to communicate with the system
 import time   #importing time library to make Rpi wait because its too impatient 
 import pigpio #importing GPIO library
 from esc.motor import Motor
+
+
 class ESC:
     max_value = 2000 # надо изменить на значения наших двигателей
     min_value = 1200  # надо изменить на значения наших двигателей
@@ -39,7 +41,7 @@ class ESC:
 
 
     def control(self, lable, speed):
-        speed = max(ESC.min_value, min(speed, ESC.max_value))
+        speed = max(ESC.min_value + 0.18 * ESC.min_value , min(speed, ESC.max_value - 1))
         for motor in self.motors:
             if motor == lable:
                 motor.set_speed(speed)
@@ -54,3 +56,7 @@ class ESC:
         for motor in self.motors:
             motor.set_speed(0)
         self.pi.stop()
+
+    def set_speed_motor(self, motors):
+        for motor in motors:
+            self.control(motor, motors[motor])
