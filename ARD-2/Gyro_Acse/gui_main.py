@@ -6,9 +6,11 @@ from figure import *
 from tkinter import *
 from tkinter import ttk
 import time
-import serial
-import threading
-from mpu6050 import mpu6050
+import numpy as np
+import board
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from gyro_thread import MPU6050
 ApplicationGL = False
 
 class PortSettings:
@@ -25,7 +27,8 @@ class IMU:
 
 myport = PortSettings()
 myimu  = IMU()
-
+pose = np.zeros((1,3))
+ax = None
 def RunAppliction():
     global ApplicationGL
     myport.Name = Port_entry.get()
@@ -81,6 +84,7 @@ def DrawText(textString):
     textData = pygame.image.tostring(textSurface, "RGBA", True)         
     glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)    
 
+
 def DrawBoard():
     
     glBegin(GL_QUADS)
@@ -95,62 +99,71 @@ def DrawBoard():
     glEnd()
 
 def DrawGL():
-
+    global sensor
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
     glLoadIdentity() 
     gluPerspective(90, (display[0]/display[1]), 0.1, 50.0)
     glTranslatef(0.0,0.0, -5)   
 
-    glRotatef(round(myimu.Pitch,1), 0, 0, 1)
-    glRotatef(round(myimu.Roll,1), -1, 0, 0)
-    glRotatef(round(myimu.Yaw, 1), 0, 1, 0)
+    glRotatef(round(sensor.currentPitch,1), 0, 0, 1)
+    glRotatef(round(sensor.currentRoll,1), 1, 0, 0)
+    glRotatef(round(sensor.currentYaw, 1), 0, 1, 0)
 
-    DrawText("Roll: {}°    Yaw: {}           Pitch: {}°".format(round(myimu.Roll,1), round(myimu.Yaw, 1), round(myimu.Pitch,1)))
+    DrawText("Roll: {}°    Yaw: {}           Pitch: {}°".format(round(sensor.currentRoll,1), round(sensor.currentYaw, 1), round(sensor.currentPitch,1)))
     DrawBoard()
     pygame.display.flip()
 
 def SerialConnection ():
     global sensor
-    sensor = mpu6050(myport.pin)
+    sensor = MPU6050()
 
+
+def animate(i):
+    global sensor
+    global pose
+    #global last_pose
+    global ax
+    ax.clear()
+    ax.scatter(*sensor.pose, s=3)
+    print(pose)
+    ax.plot(pose[:, 0], pose[:, 1], pose[:, 2])
+    pose = np.append(pose, np.expand_dims(sensor.pose, axis=0), axis=0)
 
 def ReadData():
     global sensor
-    t = time.time()
+    sensor.run()
     while True:
-        data = sensor.get_gyro_data()
-        dt = time.time() - t
-        if not data is None:
-            myimu.Roll -= data.get("y") * dt
-            myimu.Pitch += data.get("x") * dt
-            myimu.Yaw += data.get('z') * dt
-        t = time.time()
-
+        pass
 def main():
+    global sensor
+    global ax
     ConfWindw.mainloop()
     if ApplicationGL == True:
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
         InitPygame()
         InitGL()
- 
-        try:
-            SerialConnection()
-            myThread1 = threading.Thread(target = ReadData)
-            myThread1.daemon = True
-            myThread1.start() 
-            while True:
-                event = pygame.event.poll()
-                if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-                    pygame.quit()
-                    break 
+            #SerialConnection()
+            #myThread1 = threading.Thread(target = ReadData)
+            #myThread1.daemon = True
+            #myThread1.start()
+        sensor = MPU6050()
+        sensor.start()
+        ani = animation.FuncAnimation(fig, animate, interval=100)
+        plt.show()
+        while True:
+            event = pygame.event.poll()
+            if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                pygame.quit()
+                break 
 
-                DrawGL()
-                pygame.time.wait(1)
-
-        except:
-            glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-            DrawText("Sorry, something is wrong :c")
-            pygame.display.flip()
-            time.sleep(5)
+            DrawGL()
+            pygame.time.wait(1)
+            #glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+            #DrawText("Sorry, something is wrong :c")
+            #pygame.display.flip()
+            #time.sleep(5)
+        sensor.isStart = False
 
 
 if __name__ == '__main__': main()
